@@ -1,0 +1,8 @@
+<uwsgi>  
+	<socket>127.0.0.1:9090</socket>  
+	<workers>4</workers>
+	<chdir>/var/update/http_web/http_web</chdir>  
+	<pythonpath>..</pythonpath>  
+	<module>wsgi</module>  
+	<daemonize>/var/log/uwsgi/uwsgi.log</daemonize>  
+</uwsgi>  

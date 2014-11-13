@@ -1,0 +1,22 @@
+ <style type="text/css">
+        table
+        {
+            border-collapse: collapse;
+            border: none;
+            width: 40%;
+        }
+        td
+        {
+            border: solid #000 1px;
+        }
+    </style>
+<html>
+<table   >
+<tr><td>域名</td><td>流量值</td><td>费用值</td>
+{%for i in isok%}
+{% if i %}
+<tr>{%for j in i %}<td>{{j}}</td>{%endfor%}</tr>
+{%endif %}
+{%endfor%}
+</table>
+</html>

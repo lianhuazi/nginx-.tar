@@ -1,0 +1,27 @@
+ <style type="text/css">
+        table
+        {
+            border-collapse: collapse;
+            border: none;
+            width: 40%;
+        }
+        td
+        {
+            border: solid #000 1px;
+        }
+    </style>
+<html>
+<table   >
+<tr><td>id</td><td>域名</td><td>流量值[G]</td><td>费用值[元]</a></td><td>总流量值[G]</td><td>项目部</td><td>项目费用</td>
+{%for i in isok%}
+{% for j in i %}
+{% if j %}
+<tr>
+<td>{{NO|add:forloop.counter}}</td>
+{%for k in j%}<td>{{k}}</td>{%endfor%}</tr>
+{%endif %}
+{%endfor%}
+{%endfor%}
+</table>
+</html>
+
