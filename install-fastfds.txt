@@ -1,0 +1,128 @@
+yum -y install libevent libevent-devel
+mogileFS：Key-Value型元文件系统，不支持FUSE，应用程序访问它时需要API，主要用在web领域处理海量小图片，效率相比mooseFS高很多。
+fastDFS：国人在mogileFS的基础上进行改进的key-value型文件系统，同样不支持FUSE，提供比mogileFS更好的性能。
+mooseFS：支持FUSE，相对比较轻量级，对master服务器有单点依赖，用perl编写，性能相对较差，国内用的人比较多
+glusterFS：支持FUSE，比mooseFS庞大
+ceph：支持FUSE，客户端已经进入了linux-2.6.34内核，也就是说可以像ext3/rasierFS一样，选择ceph为文件系统。彻底的分布式，没有单点依赖，用C编写，性能较好。基于不成熟的btrfs，其本身也非常不成熟。
+lustre：Oracle公司的企业级产品，非常庞大，对内核和ext3深度依赖
+NFS：老牌网络文件系统，具体不了解，反正NFS最近几年没发展，肯定不能用。
+鉴于fastDFS是国人开发，也有国内的一些大公司在使用，so…
+
+普通的文件架构其实一两年内也是没有问题的，但有句话叫未雨绸缪，于是决定折腾折腾。
+源码下载：http://code.google.com/p/fastdfs
+寻求帮助：http://www.csource.org
+
+一、安装libevent
+fastDFS需要安装libevent比较新的版本，将本机的比较低的版本卸载了。
+
+rpm -qa libevent
+libevent-1.4.13-1.el6.x86_64
+rpm -e --nodeps libevent
+安装一个最新稳定版
+
+wget https://github.com/downloads/libevent/libevent/libevent-2.0.18-stable.tar.gz
+tar zxvf libevent-2.0.18-stable.tar.gz
+cd libevent-2.0.18-stable
+./configure
+make && make install
+为libevent创建软链接到/lib库下，64位系统对应/lib64
+
+ln -s /usr/local/lib/libevent* /lib/
+ln -s /usr/local/lib/libevent* /lib64/
+二、安装FastDFS
+
+wget http://fastdfs.googlecode.com/files/FastDFS_v3.06.tar.gz
+tar zxvf FastDFS_v3.06.tar.gz
+cd FastDFS
+./make.sh
+./make.sh install
+三、配置FastDFS
+环境：
+tracker server
+192.168.1.5
+storage server
+192.168.1.51
+192.168.1.52
+
+1、配置并启动 tracker server
+①配置 tracker.conf
+
+mkdir /data/fastdfs
+vim /etc/fdfs/tracker.conf
+base_path=/data/fastdfs
+②启动 tracker
+
+/usr/local/bin/fdfs_trackerd /etc/fdfs/tracker.conf
+③开机启动
+
+vim /etc/rc.local
+/usr/local/bin/fdfs_trackerd /etc/fdfs/tracker.conf
+2、配置并启动 storage server
+①配置 tracker.conf
+
+mkdir /data/fastdfs
+mkdir /data/images
+vim /etc/fdfs/storage.conf
+base_path=/data/fastdfs
+store_path0=/data/images
+tracker_server=192.168.1.5:22122
+②启动 tracker
+
+/usr/local/bin/fdfs_storage /etc/fdfs/storage.conf
+③开机启动
+
+vim /etc/rc.local
+/usr/local/bin/fdfs_storage /etc/fdfs/storage.conf
+3、为storage节点安装fastdfs-nginx-module模块
+①安装模块
+安装Nginx详见：
+需重新编译Nginx
+
+wget http://fastdfs.googlecode.com/files/fastdfs-nginx-module_v1.10.tar.gz
+tar zxvf fastdfs-nginx-module_v1.10.tar.gz
+wget http://nginx.org/download/nginx-1.2.0.tar.gz
+tar zxvf nginx-1.2.0.tar.gz
+cd nginx-1.2.0
+./configure --prefix=/usr/local/nginx --add-module=../fastdfs-nginx-module/src
+make && make install
+cd ..
+②配置
+编辑nginx.conf
+
+vim /usr/local/nginx/conf/nginx.conf
+server {
+    listen       80;
+    server_name  localhost;
+
+    location /M00 {
+        alias /data/images/data;
+        ngx_fastdfs_module;
+    }
+    ......
+}
+给 storage 的存储目录做一个软连接
+
+ln -s /data/images/data/ /data/images/data/M00
+拷贝mod_fastdfs.conf 到 /etc/fdfs/
+
+cp fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
+vim /etc/fdfs/mod_fastdfs.conf
+base_path=/data/fastdfs
+tracker_server=192.168.1.5:22122
+store_path0=/data/images
+启动nginx
+
+/usr/local/nginx/sbin/nginx
+四、使用FastDFS
+1、上传文件
+FastDFS安装包中，自带了客户端程序，通过程序可以进行文件上传。在使用这个客户端程序之前，首先需要配置client.conf，然后再进行文件上传及下载。
+在tracker上修改客户端配置文件client.conf
+
+vim /etc/fdfs/client.conf
+base_path=/data/fastdfs
+tracker_server=192.168.1.5:22122
+vim a.html
+This Is FastDFS Test.
+上传文件
+
+/usr/local/bin/fdfs_test /etc/fdfs/client.conf upload a.html
